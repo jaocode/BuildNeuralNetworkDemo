@@ -533,7 +533,6 @@ class NeuralNetwork
     {
         for i in 0..<sequence.count
         {
-            //var r = rnd.Next(i, sequence.Length); //JAO
             let r = Int.random(lower: i, sequence.count-1)
             let tmp = sequence[r];
             sequence[r] = sequence[i];
@@ -567,6 +566,23 @@ class NeuralNetwork
     // ----------------------------------------------------------------------------------------
     public func accuracy (testData: [[Double]]) -> Double
     {
+        func maxIndex(vector: [Double]) -> Int // helper for Accuracy()
+        {
+            // index of largest value
+            var bigIndex = 0
+            var biggestVal = vector[0]
+            
+            for i in 0..<vector.count
+            {
+                if vector[i] > biggestVal
+                {
+                    biggestVal = vector[i]
+                    bigIndex = i
+                }
+            }
+            return bigIndex
+        }
+        
         // percentage correct using winner-takes all
         var numCorrect = 0
         var numWrong = 0
@@ -581,9 +597,9 @@ class NeuralNetwork
             tValues = [Double](testData[i][numInput..<numInput+numOutput])
             
             yValues = computeOutputs(xValues: xValues)
-            let maxIndex = NeuralNetwork.maxIndex(vector: yValues) // which cell in yValues has largest value?
+            let maxIdx = maxIndex(vector: yValues) // which cell in yValues has largest value?
             
-            if tValues[maxIndex] == 1.0
+            if tValues[maxIdx] == 1.0
             {
                 numCorrect += 1
             }
@@ -595,22 +611,6 @@ class NeuralNetwork
         return (Double(numCorrect) * 1.0) / (Double(numCorrect) + Double(numWrong)) // ugly 2 - check for divide by zero
     }
     
-    private class func maxIndex(vector: [Double]) -> Int // helper for Accuracy()
-    {
-        // index of largest value
-        var bigIndex = 0
-        var biggestVal = vector[0]
-    
-        for i in 0..<vector.count
-        {
-            if vector[i] > biggestVal
-            {
-                biggestVal = vector[i]
-                bigIndex = i
-            }
-        }
-        return bigIndex
-    }
 } // NeuralNetwork
 
 func makeTrainTest(allData: [[Double]], trainData: inout [[Double]], testData: inout [[Double]])
@@ -707,7 +707,9 @@ func showVector(vector: [Double], valsPerRow: Int, decimals: Int, newLine: Bool)
 {
     for i in 0..<vector.count
     {
+        
         if i % valsPerRow == 0 { print("") }
+        if vector[i] >= 0 { print (" ", separator: "", terminator: "") }
         print("\(String(format:"%.\(decimals)f",vector[i])) ", separator: "", terminator: "")
     }
     if newLine == true { print("") }
