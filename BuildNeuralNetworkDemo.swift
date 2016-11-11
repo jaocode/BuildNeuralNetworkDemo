@@ -1,9 +1,13 @@
-//: Playground - noun: a place where people can play
+// This is a Swift port of James McCaffrey's netural network example from
+// Microsoft Build 2014.
+// The original C# source is available at http://www.quaetrix.com/Build2014.html.
 
 import Foundation
 
 
 // From https://github.com/thellimist/SwiftRandom/blob/master/Randoms.swift
+// This extension was not part of the original C# example. This functionality
+// is being used to generate numbers in place of the .NET Random class.
 public extension Double {
     /// SwiftRandom extension
     public static func random(lower: Double = 0, _ upper: Double = 100) -> Double {
@@ -20,7 +24,6 @@ public extension Int {
 
 class NeuralNetwork
 {
-    //private static Random rnd; JAO
     private var numInput : Int
     private var numHidden : Int
     private var numOutput : Int
@@ -51,8 +54,6 @@ class NeuralNetwork
     
     public init (numInput : Int, numHidden: Int, numOutput: Int)
     {
-    //rnd = new Random(0); // for InitializeWeights() and Shuffle() JAO
-    
         self.numInput = numInput
         self.numHidden = numHidden
         self.numOutput = numOutput
@@ -260,7 +261,6 @@ class NeuralNetwork
         for i in 0..<initialWeights.count
         {
             initialWeights[i] = (hi - lo) * Double.random(lower: 0, 1) + lo
-            // JAO initialWeights[i] = (hi - lo) * rnd.NextDouble() + lo;
         }
     
         setWeights(weights: initialWeights);
@@ -311,7 +311,6 @@ class NeuralNetwork
     
     private func computeOutputs(xValues: [Double]) -> [Double]
     {
-        //print ("\(xValues.count) \(numInput)") //JAO
         guard xValues.count == numInput else
         {
             //JAO throw new Exception("Bad xValues array length");
@@ -359,13 +358,9 @@ class NeuralNetwork
         
         let softOut = NeuralNetwork.softmax(oSums: oSums) // softmax activation does all outputs at once for efficiency
         
-        //Array.Copy(softOut, outputs, softOut.Length); JAO
         outputs = softOut //Arrays are value types in Swift
         
-        //var retResult = [Double](repeating: 0.0, count: numOutput) // could define a GetOutputs method instead
-
-        //Array.Copy(this.outputs, retResult, retResult.Length); JAO
-        let retResult = outputs //Arrays are value types in Swift
+        let retResult = outputs // could define a GetOutputs method instead
         
         return retResult
     } // ComputeOutputs
@@ -515,18 +510,16 @@ class NeuralNetwork
         {
             let mse = meanSquaredError(trainData: trainData)
 
-            if mse < 0.020 { print("break"); break } // consider passing value in as parameter
+            if mse < 0.020 { break } // consider passing value in as parameter
             //if (mse < 0.001) break; // consider passing value in as parameter
             NeuralNetwork.shuffle(sequence: &sequence) // visit each training data in random order
 
             for i in 0..<trainData.count
             {
                 let idx = sequence[i];
-                //Array.Copy(trainData[idx], xValues, numInput);
+
                 xValues = [Double](trainData[idx][0..<numInput])
                 
-                //Array.Copy(trainData[idx], numInput, tValues, 0, numOutput); //JAO
-                //tValues.replaceSubrange(numInput..<numInput+numOutput, with: trainData[idx])
                 tValues = [Double](trainData[idx][numInput..<numInput+numOutput])
                 
                 computeOutputs(xValues: xValues) // copy xValues in, compute outputs (store them internally)
@@ -583,25 +576,20 @@ class NeuralNetwork
         
         for i in 0..<testData.count
         {
-            //Array.Copy(testData[i], xValues, numInput); JAO // parse test data into x-values and t-values
-            xValues = [Double](testData[i][0..<numInput])
+            xValues = [Double](testData[i][0..<numInput]) // parse test data into x-values and t-values
             
-            //Array.Copy(testData[i], numInput, tValues, 0, numOutput); JAO
-            //tValues.replaceSubrange(numInput..<numInput+numOutput, with: testData[i])
             tValues = [Double](testData[i][numInput..<numInput+numOutput])
             
             yValues = computeOutputs(xValues: xValues)
             let maxIndex = NeuralNetwork.maxIndex(vector: yValues) // which cell in yValues has largest value?
             
-            if tValues[maxIndex] == 1.0 // ugly. consider AreEqual(double x, double y)
+            if tValues[maxIndex] == 1.0
             {
                 numCorrect += 1
-                //print ("correct: \(numCorrect)")
             }
             else
             {
                 numWrong += 1
-                //print("wrong: \(numWrong)")
             }
         }
         return (Double(numCorrect) * 1.0) / (Double(numCorrect) + Double(numWrong)) // ugly 2 - check for divide by zero
@@ -628,7 +616,6 @@ class NeuralNetwork
 func makeTrainTest(allData: [[Double]], trainData: inout [[Double]], testData: inout [[Double]])
 {
     // split allData into 80% trainData and 20% testData
-    //Random rnd = new Random(0); JAO
     
     // Total number of rows/cases in training set
     let totRows = allData.count
@@ -654,7 +641,7 @@ func makeTrainTest(allData: [[Double]], trainData: inout [[Double]], testData: i
     
     for i in 0..<sequence.count
     {
-        let r = Int.random(lower: i, sequence.count-1) // JAO rnd.Next(i, sequence.Length);
+        let r = Int.random(lower: i, sequence.count-1)
         let tmp = sequence[r]
         sequence[r] = sequence[i]
         sequence[i] = tmp
@@ -667,7 +654,6 @@ func makeTrainTest(allData: [[Double]], trainData: inout [[Double]], testData: i
     {
         trainData[j] = [Double](repeating: 0.0, count: numCols)
         let idx = sequence[si];
-        // JAO Array.Copy(allData[idx], trainData[j], numCols);
         trainData[j] = allData[idx]
         j += 1
         si += 1
@@ -679,7 +665,6 @@ func makeTrainTest(allData: [[Double]], trainData: inout [[Double]], testData: i
     {
         testData[j] = [Double](repeating: 0.0, count: numCols)
         let idx = sequence[si]
-        // JAO Array.Copy(allData[idx], testData[j], numCols);
         testData[j] = allData[idx]
         j += 1
         si += 1
@@ -723,7 +708,6 @@ func showVector(vector: [Double], valsPerRow: Int, decimals: Int, newLine: Bool)
     for i in 0..<vector.count
     {
         if i % valsPerRow == 0 { print("") }
-        //print(vector[i].ToString("F" + decimals).PadLeft(decimals + 4) + " ");
         print("\(String(format:"%.\(decimals)f",vector[i])) ", separator: "", terminator: "")
     }
     if newLine == true { print("") }
@@ -973,7 +957,6 @@ func main()
     let testAcc = nn.accuracy(testData: testData);
     print("\nAccuracy on test data = " + String(format:"%.4f",testAcc))
     print("\nEnd Build 2013 neural network demo\n")
-    //Console.ReadLine(); JAO
 } // Main
 
 main()
