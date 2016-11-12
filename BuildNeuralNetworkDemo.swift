@@ -22,6 +22,11 @@ public extension Int {
     }
 }
 
+enum NeuralNetworkError : Error
+{
+    case badArrayLength
+}
+
 class NeuralNetwork
 {
     private var numInput : Int
@@ -81,9 +86,9 @@ class NeuralNetwork
         s += "numInput = \(numInput) numHidden = \(numHidden) + numOutput = \(numOutput) + \n\n"
         s += "inputs: \n"
     
-        for i in 0..<inputs.count
+        for val in inputs
         {
-            s += "\(String(format:"%.2f", inputs[i].rounded())) "
+            s += "\(String(format:"%.2f", val.rounded())) "
         }
         
         s += "\n\n"
@@ -101,17 +106,17 @@ class NeuralNetwork
         s += "\n"
         s += "hBiases: \n"
     
-        for i in 0..<hBiases.count
+        for val in hBiases
         {
-            s += "\(String(format:"%.4f",hBiases[i])) "
+            s += "\(String(format:"%.4f",val)) "
         }
         
         s += "\n\n"
         s += "hOutputs: \n"
         
-        for i in 0..<hOutputs.count
+        for val in hOutputs
         {
-            s += "\(String(format:"%.4f",hOutputs[i])) "
+            s += "\(String(format:"%.4f",val)) "
         }
         
         s += "\n\n"
@@ -129,9 +134,9 @@ class NeuralNetwork
         s += "\n"
         s += "oBiases: \n"
 
-        for i in 0..<oBiases.count
+        for val in oBiases
         {
-            s += "\(String(format:"%.4f", oBiases[i])) "
+            s += "\(String(format:"%.4f", val)) "
         }
         
         s += "\n\n"
@@ -205,15 +210,14 @@ class NeuralNetwork
     
     // ----------------------------------------------------------------------------------------
     
-    public func setWeights (weights: [Double])
+    public func setWeights (weights: [Double]) throws
     {
         // copy weights and biases in weights[] array to i-h weights, i-h biases, h-o weights, h-o biases
         let numWeights : Int = (numInput * numHidden) + (numHidden * numOutput) + numHidden + numOutput
     
         guard weights.count == numWeights else
         {
-            // JAO throw new Exception("Bad weights array length: ");
-            return
+            throw NeuralNetworkError.badArrayLength
         }
     
         var k = 0; // points into weights param
@@ -249,7 +253,7 @@ class NeuralNetwork
         }
     }
     
-    public func initializeWeights()
+    public func initializeWeights() throws
     {
         // initialize weights and biases to small random values
         let numWeights = (numInput * numHidden) + (numHidden * numOutput) + numHidden + numOutput
@@ -263,7 +267,7 @@ class NeuralNetwork
             initialWeights[i] = (hi - lo) * Double.random(lower: 0, 1) + lo
         }
     
-        setWeights(weights: initialWeights);
+        try setWeights(weights: initialWeights);
     }
     
     public func getWeights() -> [Double]
@@ -309,12 +313,11 @@ class NeuralNetwork
     
     // ----------------------------------------------------------------------------------------
     
-    private func computeOutputs(xValues: [Double]) -> [Double]
+    private func computeOutputs(xValues: [Double]) throws -> [Double]
     {
         guard xValues.count == numInput else
         {
-            //JAO throw new Exception("Bad xValues array length");
-            return [Double]()
+            throw NeuralNetworkError.badArrayLength
         }
         
         var hSums = [Double](repeating: 0.0, count: numHidden) // hidden nodes sums scratch array
@@ -404,7 +407,7 @@ class NeuralNetwork
         return result // now scaled so that xi sum to 1.0
     }
     // ----------------------------------------------------------------------------------------
-    private func updateWeights (tValues: [Double], learnRate: Double, momentum: Double, weightDecay: Double)
+    private func updateWeights (tValues: [Double], learnRate: Double, momentum: Double, weightDecay: Double) throws
     {
         // update the weights and biases using back-propagation, with target values, eta (learning rate),
         // alpha (momentum).
@@ -413,7 +416,7 @@ class NeuralNetwork
     
         guard tValues.count == numOutput else
         {
-            return // JAO throw new Exception("target values not same Length as output in UpdateWeights");
+           throw NeuralNetworkError.badArrayLength
         }
     
         // 1. compute output gradients
@@ -490,7 +493,7 @@ class NeuralNetwork
         }
     } // UpdateWeights
     // ----------------------------------------------------------------------------------------
-    public func train(trainData: [[Double]], maxEprochs: Int, learnRate: Double, momentum: Double, weightDecay: Double)
+    public func train(trainData: [[Double]], maxEprochs: Int, learnRate: Double, momentum: Double, weightDecay: Double) throws
     {
         // train a back-prop style NN classifier using learning rate and momentum
         // weight decay reduces the magnitude of a weight value over time unless that value
@@ -508,7 +511,7 @@ class NeuralNetwork
     
         while epoch < maxEprochs
         {
-            let mse = meanSquaredError(trainData: trainData)
+            let mse = try meanSquaredError(trainData: trainData)
 
             if mse < 0.020 { break } // consider passing value in as parameter
             //if (mse < 0.001) break; // consider passing value in as parameter
@@ -522,8 +525,8 @@ class NeuralNetwork
                 
                 tValues = [Double](trainData[idx][numInput..<numInput+numOutput])
                 
-                computeOutputs(xValues: xValues) // copy xValues in, compute outputs (store them internally)
-                updateWeights(tValues: tValues, learnRate: learnRate, momentum: momentum, weightDecay: weightDecay) // find better weights
+                try computeOutputs(xValues: xValues) // copy xValues in, compute outputs (store them internally)
+                try updateWeights(tValues: tValues, learnRate: learnRate, momentum: momentum, weightDecay: weightDecay)  // find better weights
             } // each training tuple
             epoch += 1
         }
@@ -540,7 +543,7 @@ class NeuralNetwork
         }
     }
     
-    private func meanSquaredError(trainData: [[Double]]) -> Double // used as a training stopping condition
+    private func meanSquaredError(trainData: [[Double]]) throws -> Double // used as a training stopping condition
     {
         // average squared error per training tuple
         var sumSquaredError = 0.0;
@@ -553,7 +556,7 @@ class NeuralNetwork
             xValues = [Double](trainData[i][0..<numInput])
             tValues = [Double](trainData[i][numInput..<numInput+numOutput])
             
-            var yValues = computeOutputs(xValues: xValues)// compute output using current weights
+            var yValues = try computeOutputs(xValues: xValues)// compute output using current weights
             
             for j in 0..<numOutput
             {
@@ -564,7 +567,7 @@ class NeuralNetwork
         return sumSquaredError / Double(trainData.count)
     }
     // ----------------------------------------------------------------------------------------
-    public func accuracy (testData: [[Double]]) -> Double
+    public func accuracy (testData: [[Double]]) throws -> Double
     {
         func maxIndex(vector: [Double]) -> Int // helper for Accuracy()
         {
@@ -596,7 +599,7 @@ class NeuralNetwork
             
             tValues = [Double](testData[i][numInput..<numInput+numOutput])
             
-            yValues = computeOutputs(xValues: xValues)
+            yValues = try computeOutputs(xValues: xValues)
             let maxIdx = maxIndex(vector: yValues) // which cell in yValues has largest value?
             
             if tValues[maxIdx] == 1.0
@@ -907,58 +910,69 @@ func main()
         [6.2, 3.4, 5.4, 2.3, 1, 0, 0],
         [5.9, 3.0, 5.1, 1.8, 1, 0, 0]]
     
-    print("\nFirst 6 rows of entire 150-item data set:")
-    showMatrix(matrix: allData, numRows: 6, decimals: 1, newLine: true)
+    do
+    {
     
-    print("Creating 80% training and 20% test data matrices")
-    var trainData : [[Double]] = [[Double]]()
-    var testData : [[Double]] = [[Double]]()
-    makeTrainTest(allData: allData, trainData: &trainData, testData: &testData)
-
-    print("\nFirst 5 rows of training data:")
-    showMatrix(matrix: trainData, numRows: 5, decimals: 1, newLine: true)
+        print("\nFirst 6 rows of entire 150-item data set:")
+        showMatrix(matrix: allData, numRows: 6, decimals: 1, newLine: true)
     
-    print("First 3 rows of test data:")
-    showMatrix(matrix: testData, numRows: 3, decimals: 1, newLine: true)
+        print("Creating 80% training and 20% test data matrices")
+        var trainData : [[Double]] = [[Double]]()
+        var testData : [[Double]] = [[Double]]()
+        makeTrainTest(allData: allData, trainData: &trainData, testData: &testData)
+        
+        print("\nFirst 5 rows of training data:")
+        showMatrix(matrix: trainData, numRows: 5, decimals: 1, newLine: true)
+        
+        print("First 3 rows of test data:")
+        showMatrix(matrix: testData, numRows: 3, decimals: 1, newLine: true)
+        
+        normalize(dataMatrix: &trainData, cols: [0, 1, 2, 3])
+        normalize(dataMatrix: &testData, cols: [0, 1, 2, 3])
+        
+        print("\nFirst 5 rows of normalized training data:")
+        showMatrix(matrix: trainData, numRows: 5, decimals: 1, newLine: true)
+        
+        print("First 3 rows of normalized test data:")
+        showMatrix(matrix: testData, numRows: 3, decimals: 1, newLine: true)
+        
+        print("\nCreating a 4-input, 7-hidden, 3-output neural network")
+        print("Hard-coded tanh function for input-to-hidden and softmax for ")
+        print("hidden-to-output activations");
+        let numInput = 4;
+        let numHidden = 7;
+        let numOutput = 3;
+        let nn = NeuralNetwork(numInput: numInput, numHidden: numHidden, numOutput: numOutput)
     
-    normalize(dataMatrix: &trainData, cols: [0, 1, 2, 3])
-    normalize(dataMatrix: &testData, cols: [0, 1, 2, 3])
+        print("\nInitializing weights and bias to small random values")
+        try nn.initializeWeights()
+        
+        let maxEpochs = 2000
+        let learnRate = 0.05
+        let momentum = 0.01
+        let weightDecay = 0.0001
+        
+        
+        print("Setting maxEpochs = 2000, learnRate = 0.05, momentum = 0.01, weightDecay = 0.0001");
+        print("Training has hard-coded mean squared error < 0.020 stopping condition")
+        print("\nBeginning training using incremental back-propagation\n")
+        try nn.train(trainData: trainData, maxEprochs: maxEpochs, learnRate: learnRate, momentum: momentum, weightDecay: weightDecay)
+        print("Training complete")
+        
+        let weights = nn.getWeights()
+        print("Final neural network weights and bias values:")
+        showVector(vector: weights, valsPerRow: 10, decimals: 3, newLine: true)
+        let trainAcc = try nn.accuracy(testData: trainData)
+        print("\nAccuracy on training data = " + String(format:"%.4f",trainAcc))
+        let testAcc = try nn.accuracy(testData: testData);
+        print("\nAccuracy on test data = " + String(format:"%.4f",testAcc))
+        print("\nEnd Build 2013 neural network demo\n")
+    }
+    catch
+    {
+        print ("An error occurred while training")
+    }
     
-    print("\nFirst 5 rows of normalized training data:")
-    showMatrix(matrix: trainData, numRows: 5, decimals: 1, newLine: true)
-    
-    print("First 3 rows of normalized test data:")
-    showMatrix(matrix: testData, numRows: 3, decimals: 1, newLine: true)
-    
-    print("\nCreating a 4-input, 7-hidden, 3-output neural network")
-    print("Hard-coded tanh function for input-to-hidden and softmax for ")
-    print("hidden-to-output activations");
-    let numInput = 4;
-    let numHidden = 7;
-    let numOutput = 3;
-    let nn = NeuralNetwork(numInput: numInput, numHidden: numHidden, numOutput: numOutput)
-    
-    print("\nInitializing weights and bias to small random values")
-    nn.initializeWeights()
-    
-    let maxEpochs = 2000
-    let learnRate = 0.05
-    let momentum = 0.01
-    let weightDecay = 0.0001
-    print("Setting maxEpochs = 2000, learnRate = 0.05, momentum = 0.01, weightDecay = 0.0001");
-    print("Training has hard-coded mean squared error < 0.020 stopping condition")
-    print("\nBeginning training using incremental back-propagation\n")
-    nn.train(trainData: trainData, maxEprochs: maxEpochs, learnRate: learnRate, momentum: momentum, weightDecay: weightDecay)
-    print("Training complete")
-    
-    let weights = nn.getWeights()
-    print("Final neural network weights and bias values:")
-    showVector(vector: weights, valsPerRow: 10, decimals: 3, newLine: true)
-    let trainAcc = nn.accuracy(testData: trainData)
-    print("\nAccuracy on training data = " + String(format:"%.4f",trainAcc))
-    let testAcc = nn.accuracy(testData: testData);
-    print("\nAccuracy on test data = " + String(format:"%.4f",testAcc))
-    print("\nEnd Build 2013 neural network demo\n")
 } // Main
 
 main()
