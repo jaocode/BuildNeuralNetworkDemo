@@ -910,68 +910,91 @@ func main()
         [6.2, 3.4, 5.4, 2.3, 1, 0, 0],
         [5.9, 3.0, 5.1, 1.8, 1, 0, 0]]
     
+    
+    print("\nFirst 6 rows of entire 150-item data set:")
+    showMatrix(matrix: allData, numRows: 6, decimals: 1, newLine: true)
+    
+    print("Creating 80% training and 20% test data matrices")
+    var trainData : [[Double]] = [[Double]]()
+    var testData : [[Double]] = [[Double]]()
+    makeTrainTest(allData: allData, trainData: &trainData, testData: &testData)
+    
+    print("\nFirst 5 rows of training data:")
+    showMatrix(matrix: trainData, numRows: 5, decimals: 1, newLine: true)
+    
+    print("First 3 rows of test data:")
+    showMatrix(matrix: testData, numRows: 3, decimals: 1, newLine: true)
+    
+    normalize(dataMatrix: &trainData, cols: [0, 1, 2, 3])
+    normalize(dataMatrix: &testData, cols: [0, 1, 2, 3])
+    
+    print("\nFirst 5 rows of normalized training data:")
+    showMatrix(matrix: trainData, numRows: 5, decimals: 1, newLine: true)
+    
+    print("First 3 rows of normalized test data:")
+    showMatrix(matrix: testData, numRows: 3, decimals: 1, newLine: true)
+    
+    print("\nCreating a 4-input, 7-hidden, 3-output neural network")
+    print("Hard-coded tanh function for input-to-hidden and softmax for ")
+    print("hidden-to-output activations");
+    let numInput = 4;
+    let numHidden = 7;
+    let numOutput = 3;
+    let nn = NeuralNetwork(numInput: numInput, numHidden: numHidden, numOutput: numOutput)
+    
+    print("\nInitializing weights and bias to small random values")
+    
     do
     {
-    
-        print("\nFirst 6 rows of entire 150-item data set:")
-        showMatrix(matrix: allData, numRows: 6, decimals: 1, newLine: true)
-    
-        print("Creating 80% training and 20% test data matrices")
-        var trainData : [[Double]] = [[Double]]()
-        var testData : [[Double]] = [[Double]]()
-        makeTrainTest(allData: allData, trainData: &trainData, testData: &testData)
-        
-        print("\nFirst 5 rows of training data:")
-        showMatrix(matrix: trainData, numRows: 5, decimals: 1, newLine: true)
-        
-        print("First 3 rows of test data:")
-        showMatrix(matrix: testData, numRows: 3, decimals: 1, newLine: true)
-        
-        normalize(dataMatrix: &trainData, cols: [0, 1, 2, 3])
-        normalize(dataMatrix: &testData, cols: [0, 1, 2, 3])
-        
-        print("\nFirst 5 rows of normalized training data:")
-        showMatrix(matrix: trainData, numRows: 5, decimals: 1, newLine: true)
-        
-        print("First 3 rows of normalized test data:")
-        showMatrix(matrix: testData, numRows: 3, decimals: 1, newLine: true)
-        
-        print("\nCreating a 4-input, 7-hidden, 3-output neural network")
-        print("Hard-coded tanh function for input-to-hidden and softmax for ")
-        print("hidden-to-output activations");
-        let numInput = 4;
-        let numHidden = 7;
-        let numOutput = 3;
-        let nn = NeuralNetwork(numInput: numInput, numHidden: numHidden, numOutput: numOutput)
-    
-        print("\nInitializing weights and bias to small random values")
         try nn.initializeWeights()
-        
-        let maxEpochs = 2000
-        let learnRate = 0.05
-        let momentum = 0.01
-        let weightDecay = 0.0001
-        
-        
-        print("Setting maxEpochs = 2000, learnRate = 0.05, momentum = 0.01, weightDecay = 0.0001");
-        print("Training has hard-coded mean squared error < 0.020 stopping condition")
-        print("\nBeginning training using incremental back-propagation\n")
-        try nn.train(trainData: trainData, maxEprochs: maxEpochs, learnRate: learnRate, momentum: momentum, weightDecay: weightDecay)
-        print("Training complete")
-        
-        let weights = nn.getWeights()
-        print("Final neural network weights and bias values:")
-        showVector(vector: weights, valsPerRow: 10, decimals: 3, newLine: true)
-        let trainAcc = try nn.accuracy(testData: trainData)
-        print("\nAccuracy on training data = " + String(format:"%.4f",trainAcc))
-        let testAcc = try nn.accuracy(testData: testData);
-        print("\nAccuracy on test data = " + String(format:"%.4f",testAcc))
-        print("\nEnd Build 2013 neural network demo\n")
     }
     catch
     {
-        print ("An error occurred while training")
+        print ("An error occurred during weight initialization.")
+        return
     }
+    
+    let maxEpochs = 2000
+    let learnRate = 0.05
+    let momentum = 0.01
+    let weightDecay = 0.0001    
+    
+    print("Setting maxEpochs = \(maxEpochs), learnRate = \(learnRate), momentum = \(momentum), weightDecay = \(weightDecay)")
+    print("Training has hard-coded mean squared error < 0.020 stopping condition")
+    print("\nBeginning training using incremental back-propagation\n")
+    
+    do
+    {
+        try nn.train(trainData: trainData, maxEprochs: maxEpochs, learnRate: learnRate, momentum: momentum, weightDecay: weightDecay)
+    }
+    catch
+    {
+        print ("An error occurred while training the neural network.")
+        return
+    }
+    
+    print("Training complete")
+    
+    let weights = nn.getWeights()
+    print("Final neural network weights and bias values:")
+    showVector(vector: weights, valsPerRow: 10, decimals: 3, newLine: true)
+    
+    guard let trainAcc = try? nn.accuracy(testData: trainData) else
+    {
+        print ("An error occurred while evaluating network accuracy using the training set.")
+        return
+    }
+    
+    print("\nAccuracy on training data = " + String(format:"%.4f",trainAcc))
+    
+    guard let testAcc = try? nn.accuracy(testData: testData) else
+    {
+        print ("An error occurred while evaluating network accuracy using the testing set.")
+        return
+    }
+    
+    print("\nAccuracy on test data = " + String(format:"%.4f",testAcc))
+    print("\nEnd Build 2013 neural network demo\n")
     
 } // Main
 
